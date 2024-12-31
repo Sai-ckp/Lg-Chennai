@@ -1,0 +1,45 @@
+    public virtual DbSet<companydetails> companydetails { get; set; }
+
+
+
+
+
+
+
+ modelBuilder.Entity<companydetails>(entity =>
+ {
+     entity.HasKey(e => e.CompanyId).HasName("PRIMARY");
+     entity.ToTable("companydetails");
+     entity.HasIndex(e => e.CompanyId, "CompanyId").IsUnique();
+     entity.Property(e => e.AcctCircle).HasMaxLength(20);
+     entity.Property(e => e.BookTypeDc)
+         .HasDefaultValueSql("'0'")
+         .HasColumnName("BookTypeDC");
+     entity.Property(e => e.BookTypeInv)
+         .HasDefaultValueSql("'0'")
+         .HasColumnName("BookTypeINV");
+     entity.Property(e => e.Commission).HasMaxLength(255);
+     entity.Property(e => e.Divi).HasMaxLength(20);
+     entity.Property(e => e.MyCstno)
+         .HasMaxLength(20)
+         .HasColumnName("MyCSTNo");
+     entity.Property(e => e.MyLstno)
+         .HasMaxLength(20)
+         .HasColumnName("MyLSTNo");
+     entity.Property(e => e.MyPanno)
+         .HasMaxLength(30)
+         .HasColumnName("MyPANNo");
+     entity.Property(e => e.MyServRegNo).HasMaxLength(30);
+     entity.Property(e => e.MyVatregNo)
+         .HasMaxLength(100)
+         .HasColumnName("MyVATRegNo");
+     entity.Property(e => e.PrefixMfgInvoice).HasMaxLength(255);
+     entity.Property(e => e.PrefixPo)
+         .HasMaxLength(20)
+         .HasColumnName("PrefixPO");
+     entity.Property(e => e.PrefixQuote).HasMaxLength(255);
+     entity.Property(e => e.PrefixWo)
+         .HasMaxLength(20)
+         .HasColumnName("PrefixWO");
+     entity.Property(e => e.Rng).HasMaxLength(20);
+ });
