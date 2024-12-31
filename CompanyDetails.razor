@@ -1,0 +1,144 @@
+﻿@page "/companydetails"
+@using Microsoft.AspNetCore.Components
+@using System.Net.Http.Json
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@using System.ComponentModel.DataAnnotations;
+
+<h3>Company Details</h3>
+
+<EditForm Model="@company" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row m-2 mb-2">
+        <div class="col-md-3">
+            <MudTextField @bind-Value="company.PrintHead" Label="Company Name" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Required="true" ErrorText="Company Name is required" />
+        </div>
+        <div class="col-md-3">
+            <MudTextField @bind-Value="company.MyLstno" Label="LST No" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Required="true" ErrorText="LST No is required" />
+        </div>
+        <div class="col-md-3">
+            <MudTextField @bind-Value="company.MyPanno" Label="PAN No" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Required="true" ErrorText="PAN No is required" />
+        </div>
+        <div class="col-md-3">
+            <MudTextField @bind-Value="company.MyCstno" Label="CST No" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Required="true" ErrorText="CST No is required" />
+        </div>
+        <div class="col-md-6">
+            <MudTextField @bind-Value="company.PrintShortAddr" Lines="3" Label="Company Address"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
+                          ErrorText="Company Address is required" />
+        </div>
+    </div>
+
+    <div class="form-group mt-3">
+        <button type="button" class="btn btn-secondary me-2" @onclick="CloseForm">Close</button>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </div>
+</EditForm>
+
+@if (showSuccessPopup)
+{
+    <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+        Data submitted successfully!
+        <button type="button" class="btn-close" @onclick="HidePopup" aria-label="Close"></button>
+    </div>
+}
+
+@if (showErrorPopup)
+{
+    <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => showErrorPopup = false" aria-label="Close"></button>
+    </div>
+}
+
+@code {
+    private CompanyDetailsModel company = new();
+    private bool showSuccessPopup;
+    private bool showErrorPopup;
+    private string errorMessage = "";
+
+    protected override void OnInitialized()
+    {
+        var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+            };
+
+        Http = new HttpClient(handler)
+            {
+                BaseAddress = new Uri("http://localhost:5271")
+            };
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            // Debugging the data being sent
+            Console.WriteLine("Sending data to backend:");
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(company));
+
+            var response = await Http.PostAsJsonAsync("/api/CompanyDetails", company);
+
+            // Debugging response
+            Console.WriteLine($"Response status: {response.StatusCode}");
+            var content = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response content: {content}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                showSuccessPopup = true;
+                showErrorPopup = false;
+                company = new CompanyDetailsModel();  // Reset form after successful submit
+            }
+            else
+            {
+                errorMessage = $"Error {response.StatusCode}: {content}";
+                showErrorPopup = true;
+                showSuccessPopup = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+            showErrorPopup = true;
+            showSuccessPopup = false;
+            Console.WriteLine($"Exception: {ex.Message}");
+        }
+    }
+
+    private void CloseForm()
+    {
+        Navigation.NavigateTo("/");  // Navigate back to home or another page
+    }
+
+    private void HidePopup()
+    {
+        showSuccessPopup = false;
+    }
+
+    // Define CompanyDetailsModel class
+    public class CompanyDetailsModel
+    {
+        [Required(ErrorMessage = "Company Name is required")]
+        public string PrintHead { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Company Address is required")]
+        public string PrintShortAddr { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "LST No is required")]
+        public string MyLstno { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "CST No is required")]
+        public string MyCstno { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "PAN No is required")]
+        public string MyPanno { get; set; } = string.Empty;
+    }
+}
