@@ -1,0 +1,2 @@
+CreateMap<companydetailsCreateDto, companydetails>().ReverseMap();  // Item creation DTO to Vendor entity
+CreateMap<companydetailsReadOnlyDto, companydetails>().ReverseMap();  // Item read-only DTO to Item entity
