@@ -1,0 +1,2 @@
+CreateMap<PurchaseorderReadOnly, Purchaseorder>().ReverseMap();
+CreateMap<PurchaseorderSubReadOnly, PurchaseorderSub>().ReverseMap();
