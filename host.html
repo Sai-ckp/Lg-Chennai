@@ -1,0 +1,254 @@
+@page "/"
+@using Microsoft.AspNetCore.Components.Web
+@namespace UI_ERP.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="en">
+
+<script>
+    function downloadFileFromUrl(url, fileName) {
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }</script>
+
+<head>
+    <meta charset="utf-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+    <base href="~/" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link href="css/site.css" rel="stylesheet" />
+    <link href="UI_ERP.styles.css" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
+    <script>
+        function downloadFileFromStream(fileName, contentStreamReference) {
+            const arrayBuffer = base64ToArrayBuffer(contentStreamReference);
+            const blob = new Blob([arrayBuffer]);
+            const url = URL.createObjectURL(blob);
+            const anchorElement = document.createElement('a');
+            anchorElement.href = url;
+            anchorElement.download = fileName ?? '';
+            anchorElement.click();
+            anchorElement.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            return bytes.map((byte, i) => binaryString.charCodeAt(i));
+        }
+
+        // wwwroot/js/site.js
+        function saveAsFile(fileName, byteArray) {
+            var blob = new Blob([new Uint8Array(byteArray)], { type: 'application/pdf' });
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url); // Clean up the URL object
+        }
+
+        window.saveOrPrintFile = function (base64, fileName, isPrint = false) {
+            var byteCharacters = atob(base64);
+            var byteNumbers = new Array(byteCharacters.length);
+            for (var i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            var byteArray = new Uint8Array(byteNumbers);
+            var blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            var url = URL.createObjectURL(blob);
+
+            if (isPrint) {
+                var iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = url;
+                document.body.appendChild(iframe);
+                iframe.contentWindow.print();
+                document.body.removeChild(iframe);
+            } else {
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+
+            URL.revokeObjectURL(url);
+        };
+
+
+
+
+        function printLabels(labelsHtml) {
+            // Create a hidden iframe
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            // Write the labels HTML to the iframe
+            iframe.contentDocument.write(labelsHtml);
+            iframe.contentDocument.close();
+
+            // Wait for the iframe content to load
+            iframe.onload = function () {
+                // Trigger print
+                iframe.contentWindow.print();
+
+                // Remove the iframe after printing
+                iframe.onafterprint = function () {
+                    document.body.removeChild(iframe);
+                };
+            };
+        }
+
+        //used in purchasedialog download as pdf method
+        async function generateAndDownloadPdf(labelsHtml) {
+            // Load the required libraries
+            await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+            await import('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+
+            // Create a temporary container
+            const container = document.createElement('div');
+            container.innerHTML = labelsHtml;
+
+            // Apply specific styles for PDF generation
+            Object.assign(container.style, {
+                width: '250mm',  // Match the template's width
+                maxHeight: '397mm', // Match the template's max height
+                margin: '20px auto', // Center the content
+                padding: '0',
+                position: 'fixed', // Changed from absolute to fixed
+                left: '50%', // Center horizontally
+                top: '0',
+                transform: 'translateX(-50%)', // Complete the centering
+                backgroundColor: 'white',
+                border: '1px solid black',
+                boxSizing: 'border-box',
+                fontSize: '5pt', // Match template font size
+                zIndex: '-1000', // Ensure it's behind other elements
+            });
+
+            // Append to body
+            document.body.appendChild(container);
+
+            try {
+                // Wait for images to load
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Give time for layout to stabilize
+
+                // Configure html2canvas with improved settings
+                const canvas = await html2canvas(container, {
+                    scale: 2, // Higher resolution
+                    useCORS: true,
+                    logging: false,
+                    windowWidth: container.offsetWidth,
+                    windowHeight: container.offsetHeight,
+                    backgroundColor: '#ffffff',
+                    imageTimeout: 0, // No timeout for images
+                    removeContainer: true, // Clean up temporary elements
+                    allowTaint: true, // Allow cross-origin images
+                    onclone: function (clonedDoc) {
+                        // Fix any specific elements in the clone if needed
+                        const clonedContainer = clonedDoc.querySelector('div');
+                        if (clonedContainer) {
+                            clonedContainer.style.transform = 'none';
+                            clonedContainer.style.position = 'static';
+                        }
+                    }
+                });
+
+                // Create PDF with A4 dimensions
+                const pdf = new window.jspdf.jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true,
+                    precision: 16 // Increased precision for better positioning
+                });
+
+                // Calculate dimensions to maintain aspect ratio
+                const imgWidth = 210; // A4 width
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                // Add the canvas to PDF with proper positioning
+                pdf.addImage(
+                    canvas.toDataURL('image/jpeg', 1.0),
+                    'JPEG',
+                    0, // Left margin
+                    0, // Top margin
+                    imgWidth,
+                    imgHeight,
+                    undefined,
+                    'FAST'
+                );
+
+                // Handle multiple pages if content overflows
+                let heightLeft = imgHeight;
+                let position = 0;
+                const pageHeight = 297; // A4 height
+
+                while (heightLeft >= pageHeight) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(
+                        canvas.toDataURL('image/jpeg', 1.0),
+                        'JPEG',
+                        0,
+                        position,
+                        imgWidth,
+                        imgHeight,
+                        undefined,
+                        'FAST'
+                    );
+                    heightLeft -= pageHeight;
+                }
+
+                // Save the PDF
+                pdf.save('purchase_order.pdf');
+                return 'purchase_order.pdf';
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                throw error;
+            } finally {
+                // Clean up
+                if (document.body.contains(container)) {
+                    document.body.removeChild(container);
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <component type="typeof(App)" render-mode="ServerPrerendered" />
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.server.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+
+</body>
+</html>
