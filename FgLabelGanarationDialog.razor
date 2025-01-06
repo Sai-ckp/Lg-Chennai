@@ -1,0 +1,282 @@
+﻿@using ERP_API.Moduls
+@using System.Text
+@using MudBlazor
+@using Microsoft.Extensions.Logging;
+@using UI_ERP.Reusable
+@using MessagingToolkit.QRCode.Codec
+@using System.Drawing
+@inject IJSRuntime JSRuntime
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject HttpClient HttpClient
+@inject ILogger<FgLabelGanarationDialog> Logger
+
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public FglabelgenerationCreateDto fglabelgeneration { get; set; }
+    [Parameter] public FglabelgenerationReadOnlyDto fglabelgenerations { get; set; }
+
+    [Parameter] public List<ItemReadOnlyDto> Items { get; set; } = new List<ItemReadOnlyDto>();
+    [Parameter] public List<VendorReadOnlyDto> Vendors { get; set; } = new List<VendorReadOnlyDto>();
+    private MudForm form = new MudForm();
+    [Parameter] public bool isViewMode { get; set; }
+    [Parameter] public bool isEditMode { get; set; }
+
+    private string qrCodeImageData = string.Empty;
+
+    private void Close() => MudDialog.Cancel();
+    private async Task Submit()
+    {
+        try
+        {
+            if (form == null)
+            {
+                Snackbar.Add("Form is not initialized", Severity.Error);
+                return;
+            }
+
+            await form.Validate();
+
+            if (form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"An error occurred: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<int?>> FilterVendorNames(string value)
+    {
+
+        await Task.Delay(5);
+
+        if (string.IsNullOrEmpty(value))
+            return Vendors
+            .OrderBy(i => i.VendName, StringComparer.OrdinalIgnoreCase)
+            .Select(i => (int?)i.VendId);
+
+
+
+        return Vendors
+        .Where(i => i.VendName != null && i.VendName.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+        .OrderBy(i => i.VendName, StringComparer.OrdinalIgnoreCase)
+        .Select(i => (int?)i.VendId);
+    }
+    private string GenerateQRCode(int? slNo)
+    {
+        string QRStr = $"{GetItemCode(fglabelgeneration.ItemId)},{slNo},{fglabelgeneration.VendId},{GetItemName(fglabelgeneration.ItemId)},{fglabelgeneration.DateOfMfg},{fglabelgeneration.DateOfMfg:dd/MM/yyyy HH:mm tt},,{GetItemCode(fglabelgeneration.ItemId)},{fglabelgeneration.BatchNo}";
+        QRStr = QRStr.Trim().TrimEnd(',');
+        QRCodeEncoder enc = new QRCodeEncoder();
+        enc.QRCodeScale = 4; // Adjust scale as needed
+        Bitmap qrcode = enc.Encode(QRStr);
+
+        // Convert Bitmap to base64 string
+        using (MemoryStream ms = new MemoryStream())
+        {
+            qrcode.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+            byte[] byteImage = ms.ToArray();
+            string imageData = $"data:image/png;base64,{Convert.ToBase64String(byteImage)}";
+            qrCodeImageData = imageData; // Update the class-level variable
+            return imageData; // Return the image data
+        }
+    }
+
+    private async Task PrintRmLabel()
+    {
+        try
+        {
+            var rmTemplate = await File.ReadAllTextAsync("wwwroot/fgprint.html");
+            var htmlBuilder = new StringBuilder();
+
+            // Use default value 1 if NoOfLabels is null
+            int numberOfLabels = fglabelgeneration.NoOfBags ?? 1;
+
+            // Generate labels based on the number of labels
+            for (int i = 0; i < numberOfLabels; i++)
+            {
+                var challanHtml = rmTemplate
+                    .Replace("{QR_CODE}", GenerateQRCode(i + 1))
+                    .Replace("{COMPANY_NAME}", fglabelgeneration.CompanyName)
+                    .Replace("{Item_Code}", GetItemCode(fglabelgeneration.ItemId))
+                    .Replace("{Item_Name}", GetItemName(fglabelgeneration.ItemId))
+                    .Replace("{NoOfBags}", fglabelgeneration.NoOfBags?.ToString("F2") ?? string.Empty)
+                    .Replace("{BatchNo}", fglabelgeneration.BatchNo)
+                    .Replace("{Packing_Qty}", fglabelgeneration.PackQty?.ToString("F2") ?? string.Empty)
+                    .Replace("{Date_Of_MFG}", fglabelgeneration.DateOfMfg?.ToString("dd/MM/yyyy") ?? "");
+
+                htmlBuilder.Append(challanHtml);
+            }
+
+            await JSRuntime.InvokeVoidAsync("printLabels", htmlBuilder.ToString());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "An error occurred while generating the Rm Label print.");
+            await DialogService.ShowMessageBox("Error", $"An error occurred: {ex.Message}", yesText: "Ok");
+        }
+    }
+
+
+
+
+
+
+
+    private async Task<IEnumerable<int?>> FilterItemCodes(string value)
+    {
+        await Task.Delay(5);
+
+        var filteredItemNames = Items;
+
+        if (string.IsNullOrEmpty(value))
+            return filteredItemNames
+                .OrderBy(p => p.ItemCode, StringComparer.OrdinalIgnoreCase)
+                .Select(p => (int?)p.ItemId);
+
+        return filteredItemNames
+            .Where(p => p.ItemCode != null && p.ItemCode.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            .OrderBy(p => p.ItemCode, StringComparer.OrdinalIgnoreCase)
+            .Select(p => (int?)p.ItemId);
+    }
+
+    private string GetItemCode(int? productId)
+    {
+        var filteredItemNames = Items;
+        var item = filteredItemNames.FirstOrDefault(p => p.ItemId == productId);
+        return item?.ItemCode ?? string.Empty;
+    }
+
+
+    private async Task<IEnumerable<int?>> FilterItemNames(string value)
+    {
+        await Task.Delay(5);
+
+        var filteredItemNames = Items;
+
+        if (string.IsNullOrEmpty(value))
+            return filteredItemNames
+                .OrderBy(p => p.ItemName, StringComparer.OrdinalIgnoreCase)
+                .Select(p => (int?)p.ItemId);
+
+        return filteredItemNames
+            .Where(p => p.ItemName != null && p.ItemName.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            .OrderBy(p => p.ItemName, StringComparer.OrdinalIgnoreCase)
+            .Select(p => (int?)p.ItemId);
+    }
+
+    private string GetItemName(int? Id)
+    {
+        var filteredItemNames = Items;
+        var item = filteredItemNames.FirstOrDefault(p => p.ItemId == Id);
+        return item?.ItemName ?? string.Empty;
+    }
+
+    
+    
+}
+
+<DialogContent Style="max-height: 630px;">
+    <MudForm @ref="form">
+        <div class="row mb-2">
+                    <div class="row mb-2 m-1" >
+                        <div class="col-md-3">
+                            <MudAutocomplete T="int?"
+                                             @bind-Value="@fglabelgeneration.ItemId"
+                                             SearchFunc="@FilterItemCodes"
+                                             ToStringFunc="@GetItemCode"
+                                             Label="FG code"
+                                             Variant="Variant.Outlined"
+                                             Strict="false"
+                                             Margin="Margin.Dense"
+                                             Required="true"
+                                             ReadOnly="isViewMode"
+                                             RequiredError="Vendor Name is required" />
+
+                        </div>
+                        <div class="col-md-3">
+                            <MudAutocomplete T="int?"
+                                             @bind-Value="@fglabelgeneration.ItemId"
+                                             SearchFunc="@FilterItemNames"
+                                             ToStringFunc="@GetItemName"
+                                             Label="FG Name"
+                                             Variant="Variant.Outlined"
+                                             Strict="false"
+                                             Margin="Margin.Dense"
+                                             Required="true"
+                                             ReadOnly="isViewMode"
+                                             RequiredError="Vendor Code is required" />
+                        </div>
+                        
+                            <div class="col-md-3">
+                            <MudTextField @bind-Value="@fglabelgeneration.NoOfBags"
+                                          Label="No Of Bags" 
+                                              Variant="Variant.Outlined" 
+                                              ReadOnly="isViewMode" 
+                                              Margin="Margin.Dense" 
+                                              />
+                            </div>
+                            <div class="col-md-3">
+                            <MudTextField @bind-Value="@fglabelgeneration.NextBagNo"
+                                          Label="Next Bag No" 
+                                              Variant="Variant.Outlined" 
+                                              ReadOnly="isViewMode" 
+                                              Margin="Margin.Dense" 
+                                              />
+                            </div>
+                        <div class="col-md-3">
+                            <MudTextField @bind-Value="@fglabelgeneration.BatchNo"
+                                          Label="Lot/Batch No"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="isViewMode"
+                                          Margin="Margin.Dense" />
+                        </div>
+                       
+                        <div class="col-md-3">
+                            <MudDatePicker @bind-Date="@fglabelgeneration.DateOfMfg"
+                                           Label="Date Of Mfg"
+                                           Variant="Variant.Outlined"
+                                           ReadOnly="isViewMode"
+                                           Margin="Margin.Dense"
+                                           Required="true"
+                                           RequiredError="Invoice Date is required" />
+                        </div>
+                        <div class="col-md-3">
+                            <MudTextField @bind-Value="@fglabelgeneration.CompanyName"
+                                          Label="Company Name"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="isViewMode"
+                                          Margin="Margin.Dense" />
+                        </div>
+                    </div>
+        </div>
+
+        
+    </MudForm>
+</DialogContent>
+<DialogActions style="text-align: end">
+
+    <MudButton OnClick="Close" StartIcon="@Icons.Material.Filled.Close" Variant="Variant.Filled" Color="MudBlazor.Color.Error" Class="m-2">Close</MudButton>
+    @if (!isViewMode)
+    {
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="MudBlazor.Color.Primary" OnClick="Submit" Class="m-2">@(isEditMode ? "Update" : "Submit")</MudButton>
+    }
+    @if (isViewMode)
+    {
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" Color="MudBlazor.Color.Primary" OnClick="PrintRmLabel" Class="m-2">Print</MudButton>
+       
+    }
+</DialogActions>
+
+<style type="text/css">
+    .mud-table-head .header-centered th {
+        text-align: center;
+        font-size: 1.2em;
+    }
+</style>
+
+
