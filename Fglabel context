@@ -1,0 +1,29 @@
+    public virtual DbSet<FgLabelGeneration> FgLabelGenerations { get; set; }
+
+
+   modelBuilder.Entity<FgLabelGeneration>(entity =>
+   {
+       entity
+      .HasKey(e => e.FgLabelId).HasName("PRIMARY");
+       entity
+           .ToTable("fglabelgeneration");
+
+       // Ensure Id is auto-incremented (this is usually the default behavior for primary keys)
+       entity.Property(e => e.ItemId).HasDefaultValueSql("'0'");
+     
+     
+       entity.Property(e => e.BatchNo).HasMaxLength(50);
+
+       entity.Property(e => e.NextBagNo).HasDefaultValueSql("'0'");
+       entity.Property(e => e.PackQty).HasDefaultValueSql("'0'");
+
+       entity.Property(e => e.NoOfBags).HasDefaultValueSql("'0'");
+       entity.Property(e => e.VendorId).HasDefaultValueSql("'0'");
+       entity.Property(e => e.DateOfMfg).HasColumnType("datetime");
+       entity.Property(e => e.CompanyName)
+.HasMaxLength(255); // Optional constraint
+
+
+   });
+
+
