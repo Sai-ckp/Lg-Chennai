@@ -1,0 +1,3 @@
+ // Map between Customer DTOs and entities
+ CreateMap<FglabelgenerationCreateDto, FgLabelGeneration>().ReverseMap(); // Customer creation DTO to Customer entity
+ CreateMap<FglabelgenerationReadOnlyDto, FgLabelGeneration>().ReverseMap(); // Customer read-only DTO to Customer entity
