@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Print Preview</title>
+    <style>
+        @page {
+            size: 75mm 50mm;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+        }
+
+        .label {
+            width: 90mm;
+            height: 60mm;
+            border: none;
+            box-shadow: inset 0 0 0 0.6px #000;
+            background-color: #fff;
+            font-family: Cambria;
+            font-size: 13px;
+            display: grid;
+            grid-template-rows: auto auto auto auto;
+        }
+
+        .header {
+            display: grid;
+            grid-template-columns: 20mm 1fr;
+            align-items: center;
+        }
+
+        .qr-code {
+            width: 23mm;
+            height: 22mm;
+            margin-left: 5px;
+            border: 0.5px solid black;
+            margin: 5px;
+        }
+
+            .qr-code img {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+
+        .brand-info {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .item-name {
+            font-size: 18pt;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            flex-direction: column;
+            /* border: 1px solid black; */
+            border-top: 1px solid black;
+        }
+
+        .info-cell {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 5px;
+            border-bottom: 1px solid black;
+        }
+
+            .info-cell:last-child {
+                border-bottom: none;
+            }
+
+            .info-cell span {
+                flex: 1;
+                text-align: left;
+            }
+
+                .info-cell span:first-child {
+                    border-right: 1px solid black;
+                    padding-right: 5px;
+                }
+
+        .large-text {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="label" style="border-right: 1px solid #000; border-left: 1px solid #000;">
+        <div class="header">
+            <div class="qr-code">
+                <img src="{QR_CODE}" alt="QR Code">
+            </div>
+            <div class="brand-info">
+                <div class="item-name">
+                    <span>Laljee Godhoo & Co,<span>
+                </div>
+            </div>
+        </div>
+
+         <div class="info-cell large-text">
+                <span>SL NO:</span>
+                <span>{Serial_Number}</span>
+            </div>
+        <div class="info-row">
+            <div class="info-cell large-text">
+                <span>FG Code:</span>
+                <span>{Item_Code}</span>
+            </div>
+            <div class="info-cell large-text">
+                <span>Item Name:</span>
+                <span>{Item_Name}</span>
+            </div>
+            <div class="info-cell large-text">
+                <span>Lot/Batch No:</span>
+                <span>{BatchNo}</span>
+            </div>
+            <div class="info-cell large-text">
+                <span>Invoice No:</span>
+                <span>{NoOfBags}</span>
+            </div>
+            <div class="info-cell large-text">
+                <span>Packing Qty:</span>
+                <span>{Packing_Qty}</span>
+            </div>
+            <div class="info-cell large-text">
+                <span>Date Of MFG:</span>
+                <span>{Date_Of_MFG}</span> 
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
