@@ -107,6 +107,7 @@ namespace ERP_API.Controller
             }
         }
 
+
         [HttpPost]
         public async Task<ActionResult<FglabelgenerationReadOnlyDto>> PostFgLabelGeneration(FglabelgenerationCreateDto fgLabelGenerationDto)
         {
@@ -117,21 +118,30 @@ namespace ERP_API.Controller
                     return Problem("Entity set is null.");
                 }
 
-                // Get the latest FgLabelId
+                var fgLabelGeneration = _mapper.Map<FgLabelGeneration>(fgLabelGenerationDto);
+
+                // Get the count of existing labels with the same batch number
+                var batchCount = await _context.FgLabelGenerations
+                    .Where(x => x.BatchNo == fgLabelGenerationDto.BatchNo)
+                    .CountAsync();
+
+                // Get the batch number from the input
+                var BatchNo = fgLabelGenerationDto.BatchNo;
+                var sequenceNo = batchCount + 1;
+
+                // Set the serial number in format XX/YY
+                fgLabelGeneration.SerialNumber = int.Parse($"{BatchNo}{sequenceNo:D2}");
+
+                // Set the FgLabelId
                 var lastFgLabel = await _context.FgLabelGenerations
                     .OrderByDescending(x => x.FgLabelId)
                     .FirstOrDefaultAsync();
-
-                var fgLabelGeneration = _mapper.Map<FgLabelGeneration>(fgLabelGenerationDto);
-
-                // Set the new FgLabelId
                 fgLabelGeneration.FgLabelId = (lastFgLabel?.FgLabelId ?? 0) + 1;
 
                 _context.FgLabelGenerations.Add(fgLabelGeneration);
                 await _context.SaveChangesAsync();
 
                 var createdDto = _mapper.Map<FglabelgenerationReadOnlyDto>(fgLabelGeneration);
-
                 return CreatedAtAction("GetFgLabelGeneration", new { id = fgLabelGeneration.FgLabelId }, createdDto);
             }
             catch (Exception ex)

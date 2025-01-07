@@ -13,63 +13,71 @@
 @inject IDialogService DialogService
 @using MessagingToolkit.QRCode.Codec
 @inject IJSRuntime JSRuntime
-@inject UserRightsService UserRightsService // this sholud add in every display page //
-
-
+@inject UserRightsService UserRightsService
 
 <div class="container" id="container" style="background-color: #f0f0f0;">
     <div class="row rounded m-1">
         <div class="col-md-5">
-            <h5>FG Label Ganaration Details</h5>
+            <h5>FG Label Generation Details</h5>
         </div>
         <div class="col-md-4">
-            <MudTextField @bind-Value="SearchValue" Placeholder="Search" Clearable="true" Adornment="Adornment.Start" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"></MudTextField>
+            <MudTextField @bind-Value="SearchValue" Placeholder="Search" Clearable="true"
+            Adornment="Adornment.Start" Variant="Variant.Outlined"
+            Margin="Margin.Dense" Immediate="true">
+            </MudTextField>
         </div>
 
         <div class="col-md-3 d-flex justify-content-end">
             <MudTooltip Text="Add Label Generation">
-                <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" Style="padding: 0px;" OnClick="OpenCreateDialog" Disabled="@(!CanAdd)" />
+                <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.Add"
+                Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary"
+                Style="padding: 0px;" OnClick="OpenCreateDialog"
+                Disabled="@(!CanAdd)" />
             </MudTooltip>
         </div>
     </div>
 
-    <MudTable Items="FilteredLabels" Hover="true" SortLabel="Sort By" Striped="true" RowsPerPage="25" Height="513px" Breakpoint="Breakpoint.Sm" Virtualize="true" FixedHeader="true" Dense="true"
-    CustomHeader="true" CustomFooter="true" Bordered="true" HeaderClass="table-head-bordered" FooterClass="table-foot-bordered" Class="displayTable">
+    <MudTable Items="FilteredLabels" Hover="true" SortLabel="Sort By" Striped="true"
+    RowsPerPage="25" Height="513px" Breakpoint="Breakpoint.Sm" Virtualize="true"
+    FixedHeader="true" Dense="true" CustomHeader="true" CustomFooter="true"
+    Bordered="true" HeaderClass="table-head-bordered"
+    FooterClass="table-foot-bordered" Class="displayTable">
         <HeaderContent>
             <MudTh>SL NO</MudTh>
             <MudTh>FG Code</MudTh>
             <MudTh>FG Name</MudTh>
             <MudTh>Lot/Batch No</MudTh>
             <MudTh>Date Of MFG</MudTh>
-            <MudTh>Comapny Name</MudTh>
+            <MudTh>Company Name</MudTh>
             <MudTh>
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
                     <span>View</span>
                     <span>Edit</span>
                     <span>Delete</span>
                 </div>
-
             </MudTh>
-
         </HeaderContent>
         <RowTemplate>
-            <MudTd style="max-width: 100px;">@(Labels.IndexOf(context) + 1)</MudTd>
+            <MudTd style="max-width: 100px;">@context.SerialNumber</MudTd>
             <MudTd>@GetItemCode(context.ItemId)</MudTd>
             <MudTd>@GetItemName(context.ItemId)</MudTd>
             <MudTd>@context.BatchNo</MudTd>
             <MudTd>@($"{context.DateOfMfg:dd-MM-yyyy}")</MudTd>
             <MudTd>@context.CompanyName</MudTd>
-            @if (!string.IsNullOrEmpty(qrCodeImageData))
-            {
-                <MudImage Src="@qrCodeImageData" Alt="QR Code" Elevation="25" />
-            }
-
             <MudTd style="text-align: right;">
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                    <MudIconButton Icon="@Icons.Material.Outlined.Visibility" Size="MudBlazor.Size.Small" Disabled="@(!CanView)" Variant="Variant.Filled" Color="MudBlazor.Color.Tertiary" OnClick="@(async () => await OpenDialogForView(context.FgLabelId))" />
-                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="MudBlazor.Size.Small" Disabled="@(!CanEdit)" Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="@(async () => await OpenDialogForEdit(context.FgLabelId))" />
-                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="MudBlazor.Size.Small" Disabled="@(!CanDelete)" Variant="Variant.Filled" Color="MudBlazor.Color.Secondary" OnClick="@(() => DeleteInwardMaterial(context.FgLabelId))" />
-
+                    <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                    Size="MudBlazor.Size.Small" Disabled="@(!CanView)"
+                    Variant="Variant.Filled" Color="MudBlazor.Color.Tertiary"
+                    OnClick="@(async () => await OpenDialogForView(context.FgLabelId))" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                    Size="MudBlazor.Size.Small" Disabled="@(!CanEdit)"
+                    Variant="Variant.Filled" Color="MudBlazor.Color.Primary"
+                    OnClick="@(async () => await OpenDialogForEdit(context.FgLabelId))" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                    Size="MudBlazor.Size.Small" Disabled="@(!CanDelete)"
+                    Variant="Variant.Filled" Color="MudBlazor.Color.Secondary"
+                    OnClick="@(() => DeleteInwardMaterial(context.FgLabelId))" />
                 </div>
             </MudTd>
         </RowTemplate>
@@ -81,12 +89,8 @@
 
 @code {
     private FglabelgenerationCreateDto fglabelgeneration = new FglabelgenerationCreateDto();
-    private List<FglabelgenerationReadOnlyDto> fglabelgenerations { get; set; } = new List<FglabelgenerationReadOnlyDto>();
-
     private List<FglabelgenerationReadOnlyDto> Labels { get; set; } = new List<FglabelgenerationReadOnlyDto>();
-
     private List<ItemReadOnlyDto> Items { get; set; } = new List<ItemReadOnlyDto>();
-
     private List<VendorReadOnlyDto> Vendors { get; set; } = new List<VendorReadOnlyDto>();
     private List<UomReadOnlyDto> UOMs { get; set; } = new List<UomReadOnlyDto>();
     private bool DialogVisible { get; set; } = false;
@@ -94,81 +98,55 @@
     private string SearchValue { get; set; } = string.Empty;
     private string qrCodeImageData = string.Empty;
     private bool isInwardEntryGenerated = false;
-    private UserRightsViewModel userRights; //this also in every display page same place//
+    private UserRightsViewModel userRights;
 
     private bool CanView => userRights?.CanView ?? false;
     private bool CanAdd => userRights?.CanAdd ?? false;
     private bool CanEdit => userRights?.CanEdit ?? false;
     private bool CanDelete => userRights?.CanDelete ?? false;
 
-    private string GetItemCode(int? productId)
-    {
-        var filteredItemNames = Items;
-        var item = filteredItemNames.FirstOrDefault(p => p.ItemId == productId);
-        return item?.ItemCode ?? string.Empty;
-    }
-    private string GetVendorName(int? vendId)
-    {
-        var item = Vendors.FirstOrDefault(i => i.VendId == vendId);
-        return item?.VendName ?? string.Empty;
-    }
-    private string GetMeasureName(int? ItemId)
-    {
-        var item = Items.FirstOrDefault(i => i.ItemId == ItemId);
-        if (item != null)
-        {
-            var measurement = UOMs.FirstOrDefault(m => m.UomId == item.UomId);
-            return measurement != null ? measurement.UomName : string.Empty;
-        }
-        return string.Empty;
-    }
 
-    private string GetVendorCode(int? vendId)
-    {
-        var item = Vendors.FirstOrDefault(i => i.VendId == vendId);
-        return item?.VendCode ?? string.Empty;
-    }
+    private IEnumerable<FglabelgenerationReadOnlyDto> FilteredLabels =>
+        Labels?.Where(fglabelgeneration =>
+            string.IsNullOrWhiteSpace(SearchValue) ||
+            (fglabelgeneration.BatchNo?.ToString().Contains(SearchValue, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (fglabelgeneration.SerialNumber?.ToString().Contains(SearchValue, StringComparison.OrdinalIgnoreCase) ?? false)
+        ) ?? Enumerable.Empty<FglabelgenerationReadOnlyDto>();
 
-    private string GetItemName(int? Id)
-    {
-        var filteredItemNames = Items;
-        var item = filteredItemNames.FirstOrDefault(p => p.ItemId == Id);
-        return item?.ItemName ?? string.Empty;
-    }
-    private DialogOptions MediumDialogOptions = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium, // Sets the maximum width to Medium
-            CloseButton = true          // Enables the close button
-        };
     protected override async Task OnInitializedAsync()
     {
         try
         {
-
             Labels = await HttpClient.GetFromJsonAsync<List<FglabelgenerationReadOnlyDto>>($"{Variable.API_URL}/api/FgLabelGenerations");
-            userRights = await UserRightsService.GetUserRights("fglabelgeneration");//change that string when u copy for other //
-
+            userRights = await UserRightsService.GetUserRights("fglabelgeneration");
             Labels = Labels.OrderByDescending(po => po.FgLabelId).ToList();
-
-
-
-
             Items = await HttpClient.GetFromJsonAsync<List<ItemReadOnlyDto>>($"{Variable.API_URL}/api/Items");
             Vendors = await HttpClient.GetFromJsonAsync<List<VendorReadOnlyDto>>($"{Variable.API_URL}/api/Vendors");
+            UOMs = await HttpClient.GetFromJsonAsync<List<UomReadOnlyDto>>($"{Variable.API_URL}/api/Uoms");
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error fetching data: {ex.Message}", Severity.Error);
         }
     }
-    private IEnumerable<FglabelgenerationReadOnlyDto> FilteredLabels =>
-       Labels?.Where(fglabelgeneration =>
-       string.IsNullOrWhiteSpace(SearchValue) ||
-       (fglabelgeneration.BatchNo?.Contains(SearchValue, StringComparison.OrdinalIgnoreCase) ?? false)
 
-       ) ?? Enumerable.Empty<FglabelgenerationReadOnlyDto>();
+    private string GetItemCode(int? productId)
+    {
+        var item = Items.FirstOrDefault(p => p.ItemId == productId);
+        return item?.ItemCode ?? string.Empty;
+    }
 
+    private string GetItemName(int? Id)
+    {
+        var item = Items.FirstOrDefault(p => p.ItemId == Id);
+        return item?.ItemName ?? string.Empty;
+    }
 
+    private DialogOptions MediumDialogOptions = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            CloseButton = true
+        };
 
     private async Task OpenCreateDialog()
     {
@@ -184,13 +162,15 @@
                 ["Items"] = Items,
             };
 
-        var dialog = DialogService.Show<FgLabelGanarationDialog>("Create FG Label", dialogParameters, MediumDialogOptions);
+        var dialog = DialogService.Show<FgLabelGanarationDialog>("Create FG Label",
+                                                               dialogParameters,
+                                                               MediumDialogOptions);
         var result = await dialog.Result;
 
         if (!result.Canceled)
         {
-            // Show confirmation dialog
-            bool isConfirmed = await ShowConfirmationDialog("Confirm Add", "Are you sure you want to add this label?");
+            bool isConfirmed = await ShowConfirmationDialog("Confirm Add",
+                                                          "Are you sure you want to add this label?");
             if (isConfirmed)
             {
                 await AddInwardMaterial();
@@ -206,9 +186,8 @@
     {
         try
         {
-            Console.WriteLine($"Sending FG Material: {System.Text.Json.JsonSerializer.Serialize(fglabelgeneration)}");
-
-            var response = await HttpClient.PostAsJsonAsync($"{Variable.API_URL}/api/FgLabelGenerations", fglabelgeneration);
+            var response = await HttpClient.PostAsJsonAsync($"{Variable.API_URL}/api/FgLabelGenerations",
+                                                          fglabelgeneration);
 
             if (response.IsSuccessStatusCode)
             {
@@ -216,7 +195,6 @@
                 DialogVisible = false;
                 await ReloadInwardMaterials();
 
-                // Automatically open the view dialog for the newly added FG material
                 var newLabel = await response.Content.ReadFromJsonAsync<FglabelgenerationReadOnlyDto>();
                 if (newLabel != null)
                 {
@@ -226,14 +204,13 @@
             else
             {
                 var errorMessage = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Error response: {errorMessage}");
                 Snackbar.Add($"Failed to save Inward Material: {errorMessage}", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Exception in AddInwardMaterial: {ex}");
-            Snackbar.Add($"An error occurred while saving Inward Material: {ex.Message}", Severity.Error);
+            Snackbar.Add($"An error occurred while saving Inward Material: {ex.Message}",
+                        Severity.Error);
         }
     }
 
@@ -261,10 +238,11 @@
                 ["isViewMode"] = isViewMode,
                 ["Vendors"] = Vendors,
                 ["Items"] = Items,
-
-
             };
-        var dialog = DialogService.Show<FgLabelGanarationDialog>("View Raw Material Label", dialogParameters, MediumDialogOptions);
+
+        var dialog = DialogService.Show<FgLabelGanarationDialog>("View Raw Material Label",
+                                                               dialogParameters,
+                                                               MediumDialogOptions);
         await dialog.Result;
     }
 
@@ -276,14 +254,15 @@
 
         var dialogParameters = new DialogParameters
             {
-
                 ["isViewMode"] = isViewMode,
                 ["Vendors"] = Vendors,
                 ["Items"] = Items,
                 ["fglabelgeneration"] = fglabelgeneration,
-
             };
-        var dialog = DialogService.Show<FgLabelGanarationDialog>("Edit FG Label", dialogParameters, MediumDialogOptions);
+
+        var dialog = DialogService.Show<FgLabelGanarationDialog>("Edit FG Label",
+                                                               dialogParameters,
+                                                               MediumDialogOptions);
         var result = await dialog.Result;
 
         if (!result.Canceled)
@@ -296,7 +275,9 @@
     {
         try
         {
-            var response = await HttpClient.PutAsJsonAsync($"{Variable.API_URL}/api/FgLabelGenerations/{fglabelgeneration.FgLabelId}", fglabelgeneration);
+            var response = await HttpClient.PutAsJsonAsync(
+                $"{Variable.API_URL}/api/FgLabelGenerations/{fglabelgeneration.FgLabelId}",
+                fglabelgeneration);
 
             if (response.IsSuccessStatusCode)
             {
@@ -312,7 +293,8 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"An error occurred while updating FG Label: {ex.Message}", Severity.Error);
+            Snackbar.Add($"An error occurred while updating FG Label: {ex.Message}",
+                        Severity.Error);
         }
     }
 
@@ -320,24 +302,11 @@
     {
         try
         {
-            var materialDto = await HttpClient.GetFromJsonAsync<FglabelgenerationCreateDto>($"{Variable.API_URL}/api/FgLabelGenerations/{id}");
+            var materialDto = await HttpClient.GetFromJsonAsync<FglabelgenerationCreateDto>(
+                $"{Variable.API_URL}/api/FgLabelGenerations/{id}");
             if (materialDto != null)
             {
                 fglabelgeneration = materialDto;
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
-        }
-        try
-        {
-            var materialDto = await HttpClient.GetFromJsonAsync<FglabelgenerationCreateDto>($"{Variable.API_URL}/api/FgLabelGenerations/{id}");
-            if (materialDto != null)
-            {
-                fglabelgeneration = materialDto;
-
-
             }
         }
         catch (Exception ex)
@@ -359,12 +328,12 @@
 
             if (confirmDelete == true)
             {
-                var response = await HttpClient.DeleteAsync($"{Variable.API_URL}/api/FgLabelGenerations/{id}");
+                var response = await HttpClient.DeleteAsync(
+                    $"{Variable.API_URL}/api/FgLabelGenerations/{id}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     Labels.RemoveAll(b => b.FgLabelId == id);
-
                     await DialogService.ShowMessageBox(
                         "Success",
                         "Rm Label information deleted successfully.",
@@ -395,7 +364,9 @@
 
     private async Task ReloadInwardMaterials()
     {
-        Labels = await HttpClient.GetFromJsonAsync<List<FglabelgenerationReadOnlyDto>>($"{Variable.API_URL}/api/FgLabelGenerations");
+        string requestUri = $"{Variable.API_URL}/api/FgLabelGenerations";
+        Labels = await HttpClient.GetFromJsonAsync<List<FglabelgenerationReadOnlyDto>>(
+        requestUri);
         StateHasChanged();
     }
 }

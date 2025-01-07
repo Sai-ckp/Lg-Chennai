@@ -9,22 +9,20 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject HttpClient HttpClient
-@inject ILogger<FgLabelGanarationDialog> Logger
+@inject ILogger<RmLabelGenerationDialog> Logger
 
 
 
 @code {
     [CascadingParameter] MudDialogInstance MudDialog { get; set; }
-    [Parameter] public FglabelgenerationCreateDto fglabelgeneration { get; set; }
-    [Parameter] public FglabelgenerationReadOnlyDto fglabelgenerations { get; set; }
+    [Parameter] public RmLabelGenerationCreateDto RmLabelGeneration { get; set; }
+    [Parameter] public RmLabelGenerationReadOnlyDto RmLabelGenerations { get; set; }
 
     [Parameter] public List<ItemReadOnlyDto> Items { get; set; } = new List<ItemReadOnlyDto>();
     [Parameter] public List<VendorReadOnlyDto> Vendors { get; set; } = new List<VendorReadOnlyDto>();
     private MudForm form = new MudForm();
     [Parameter] public bool isViewMode { get; set; }
     [Parameter] public bool isEditMode { get; set; }
-
-    private string qrCodeImageData = string.Empty;
 
     private void Close() => MudDialog.Cancel();
     private async Task Submit()
@@ -67,14 +65,9 @@
         .OrderBy(i => i.VendName, StringComparer.OrdinalIgnoreCase)
         .Select(i => (int?)i.VendId);
     }
-
-    private string GetSerialNumber(string batchNo, int index)
-    {
-        return $"{batchNo}/{(index + 1):D2}";
-    }
     private string GenerateQRCode(int? slNo)
     {
-        string QRStr = $"{GetItemCode(fglabelgeneration.ItemId)},{slNo},{fglabelgeneration.VendId},{GetItemName(fglabelgeneration.ItemId)},{fglabelgeneration.DateOfMfg},{fglabelgeneration.DateOfMfg:dd/MM/yyyy HH:mm tt},,{GetItemCode(fglabelgeneration.ItemId)},{fglabelgeneration.BatchNo}";
+        string QRStr = $"{GetItemCode(RmLabelGeneration.ItemId)},{slNo},{GetItemName(RmLabelGeneration.ItemId)},{RmLabelGeneration.InvNo},{RmLabelGeneration.InvDate:dd/MM/yyyy HH:mm tt},,{GetItemCode(RmLabelGeneration.ItemId)},{RmLabelGeneration.BatchNo}";
         QRStr = QRStr.Trim().TrimEnd(',');
         QRCodeEncoder enc = new QRCodeEncoder();
         enc.QRCodeScale = 4; // Adjust scale as needed
@@ -95,32 +88,26 @@
     {
         try
         {
-            var rmTemplate = await File.ReadAllTextAsync("wwwroot/fgprint.html");
+            var rmTemplate = await File.ReadAllTextAsync("wwwroot/rmPrintLabel.html");
             var htmlBuilder = new StringBuilder();
 
             // Use default value 1 if NoOfLabels is null
-            int numberOfLabels = fglabelgeneration.NoOfBags ?? 1;
+            int numberOfLabels = RmLabelGeneration.NoOfBags ?? 1;
 
-            var response = await HttpClient.GetFromJsonAsync<List<FglabelgenerationReadOnlyDto>>($"{Variable.API_URL}/api/FgLabelGenerations");
-            var existingLabels = response?.Where(x => x.BatchNo == fglabelgeneration.BatchNo).ToList() ?? new List<FglabelgenerationReadOnlyDto>();
-            var startingSequence = existingLabels.Count;
             // Generate labels based on the number of labels
             for (int i = 0; i < numberOfLabels; i++)
             {
-
-                var currentSequence = startingSequence + i + 1;
-                var serialNumber = $"{fglabelgeneration.BatchNo}/{currentSequence:D2}";
-
                 var challanHtml = rmTemplate
                     .Replace("{QR_CODE}", GenerateQRCode(i + 1))
-                    .Replace("{COMPANY_NAME}", fglabelgeneration.CompanyName)
-                    .Replace("{Item_Code}", GetItemCode(fglabelgeneration.ItemId))
-                    .Replace("{Item_Name}", GetItemName(fglabelgeneration.ItemId))
-                    .Replace("{NoOfBags}", fglabelgeneration.NoOfBags?.ToString("F2") ?? string.Empty)
-                    .Replace("{BatchNo}", fglabelgeneration.BatchNo)
-                    .Replace("{Packing_Qty}", fglabelgeneration.PackQty?.ToString("F2") ?? string.Empty)
-                    .Replace("{Date_Of_MFG}", fglabelgeneration.DateOfMfg?.ToString("dd/MM/yyyy") ?? "")
-                    .Replace("{Serial_Number}", serialNumber);
+                    .Replace("{COMPANY_NAME}", RmLabelGeneration.CompanyName)
+                    .Replace("{Item_Code}", GetItemCode(RmLabelGeneration.ItemId))
+                    .Replace("{Item_Name}", GetItemName(RmLabelGeneration.ItemId))
+                    .Replace("{NoOfBags}", RmLabelGeneration.NoOfBags?.ToString("F2") ?? string.Empty)
+                    .Replace("{BatchNo}", RmLabelGeneration.BatchNo)
+                    .Replace("{InvNo}", RmLabelGeneration.InvNo)
+                    .Replace("{InvDate}", RmLabelGeneration.InvDate?.ToString("dd/MM/yyyy") ?? "")
+                    .Replace("{Supplier_Name}", GetVendorName(RmLabelGeneration.VendorId))
+                    .Replace("{Supplier_Code}", GetVendorCode(RmLabelGeneration.VendorId));
 
                 htmlBuilder.Append(challanHtml);
             }
@@ -134,40 +121,41 @@
         }
     }
 
+    //     private async Task PrintLabelsAndQRCodes()
+    // {
+    // }
 
-    private async Task SaveSerialNumbers(int numberOfLabels)
+    private string GetVendorName(int? vendId)
     {
-        try
-        {
-            for (int i = 0; i < numberOfLabels; i++)
-            {
-                var serialNumber = GetSerialNumber(fglabelgeneration.BatchNo, i);
+        var item = Vendors.FirstOrDefault(i => i.VendId == vendId);
+        return item?.VendName ?? string.Empty;
+    }
+    private string qrCodeImageData = string.Empty;
 
-                // Create a copy of the current fglabelgeneration with the serial number
-                var labelWithSerial = new FglabelgenerationCreateDto
-                    {
-                        ItemId = fglabelgeneration.ItemId,
-                        BatchNo = fglabelgeneration.BatchNo,
-                        NoOfBags = 1, // Each label represents one bag
-                        DateOfMfg = fglabelgeneration.DateOfMfg,
-                        CompanyName = fglabelgeneration.CompanyName,
-                        PackQty = fglabelgeneration.PackQty,
-                        SerialNumber = fglabelgeneration.SerialNumber
-                    };
+    private async Task<IEnumerable<int?>> FilterVendorCodes(string value)
+    {
 
-                // Save to database
-                await HttpClient.PostAsJsonAsync($"{Variable.API_URL}/api/FgLabelGenerations", labelWithSerial);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "An error occurred while saving serial numbers.");
-            throw;
-        }
+        await Task.Delay(5);
+
+
+        if (string.IsNullOrEmpty(value))
+            return Vendors
+            .OrderBy(i => i.VendCode, StringComparer.OrdinalIgnoreCase) 
+            .Select(i => (int?)i.VendId);
+
+
+
+        return Vendors
+        .Where(i => i.VendCode != null && i.VendCode.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+        .OrderBy(i => i.VendCode, StringComparer.OrdinalIgnoreCase) 
+        .Select(i => (int?)i.VendId);
     }
 
-
-
+    private string GetVendorCode(int? vendId)
+    {
+        var item = Vendors.FirstOrDefault(i => i.VendId == vendId);
+        return item?.VendCode ?? string.Empty;
+    }
 
     private async Task<IEnumerable<int?>> FilterItemCodes(string value)
     {
@@ -228,34 +216,34 @@
                     <div class="row mb-2 m-1" >
                         <div class="col-md-3">
                             <MudAutocomplete T="int?"
-                                             @bind-Value="@fglabelgeneration.ItemId"
+                                             @bind-Value="@RmLabelGeneration.ItemId"
                                              SearchFunc="@FilterItemCodes"
                                              ToStringFunc="@GetItemCode"
-                                             Label="FG code"
+                                             Label="Item code"
                                              Variant="Variant.Outlined"
+                                     ReadOnly="isViewMode"
                                              Strict="false"
                                              Margin="Margin.Dense"
                                              Required="true"
-                                             ReadOnly="isViewMode"
                                              RequiredError="Vendor Name is required" />
 
                         </div>
                         <div class="col-md-3">
                             <MudAutocomplete T="int?"
-                                             @bind-Value="@fglabelgeneration.ItemId"
+                                             @bind-Value="@RmLabelGeneration.ItemId"
                                              SearchFunc="@FilterItemNames"
                                              ToStringFunc="@GetItemName"
-                                             Label="FG Name"
+                                             Label="Item Name"
                                              Variant="Variant.Outlined"
+                                     ReadOnly="isViewMode"
                                              Strict="false"
                                              Margin="Margin.Dense"
                                              Required="true"
-                                             ReadOnly="isViewMode"
                                              RequiredError="Vendor Code is required" />
                         </div>
                         
                             <div class="col-md-3">
-                            <MudTextField @bind-Value="@fglabelgeneration.NoOfBags"
+                            <MudTextField @bind-Value="@RmLabelGeneration.NoOfBags"
                                           Label="No Of Bags" 
                                               Variant="Variant.Outlined" 
                                               ReadOnly="isViewMode" 
@@ -263,7 +251,7 @@
                                               />
                             </div>
                             <div class="col-md-3">
-                            <MudTextField @bind-Value="@fglabelgeneration.NextBagNo"
+                            <MudTextField @bind-Value="@RmLabelGeneration.NextBagNo"
                                           Label="Next Bag No" 
                                               Variant="Variant.Outlined" 
                                               ReadOnly="isViewMode" 
@@ -271,16 +259,24 @@
                                               />
                             </div>
                         <div class="col-md-3">
-                            <MudTextField @bind-Value="@fglabelgeneration.BatchNo"
+                            <MudTextField @bind-Value="@RmLabelGeneration.BatchNo"
                                           Label="Lot/Batch No"
                                           Variant="Variant.Outlined"
                                           ReadOnly="isViewMode"
                                           Margin="Margin.Dense" />
                         </div>
-                       
                         <div class="col-md-3">
-                            <MudDatePicker @bind-Date="@fglabelgeneration.DateOfMfg"
-                                           Label="Date Of Mfg"
+                            <MudTextField @bind-Value="@RmLabelGeneration.InvNo"
+                                          Label="Invoice No"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="isViewMode"
+                                          Margin="Margin.Dense"
+                                          Required="true"
+                                          RequiredError="Invoice No is required" />
+                        </div>
+                        <div class="col-md-3">
+                            <MudDatePicker @bind-Date="@RmLabelGeneration.InvDate"
+                                           Label="Invoice Date"
                                            Variant="Variant.Outlined"
                                            ReadOnly="isViewMode"
                                            Margin="Margin.Dense"
@@ -288,12 +284,58 @@
                                            RequiredError="Invoice Date is required" />
                         </div>
                         <div class="col-md-3">
-                            <MudTextField @bind-Value="@fglabelgeneration.CompanyName"
-                                          Label="Company Name"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="isViewMode"
-                                          Margin="Margin.Dense" />
+                            <MudAutocomplete T="int?"
+                                             @bind-Value="@RmLabelGeneration.VendorId"
+                                             SearchFunc="@FilterVendorNames"
+                                             ToStringFunc="@GetVendorName"
+                                             Label="Vendor Name"
+                                             Variant="Variant.Outlined"
+                                     ReadOnly="isViewMode"
+                                             Strict="false"
+                                             Margin="Margin.Dense"
+                                             Required="true"
+                                             RequiredError="Vendor Name is required" />
                         </div>
+                        <div class="col-md-3">
+                            <MudAutocomplete T="int?"
+                                             @bind-Value="@RmLabelGeneration.VendorId"
+                                             SearchFunc="@FilterVendorCodes"
+                                             ToStringFunc="@GetVendorCode"
+                                             Label="Vendor Code"
+                                             Variant="Variant.Outlined"
+                                     ReadOnly="isViewMode"
+                                             Strict="false"
+                                             Margin="Margin.Dense"
+                                             Required="true"
+                                             RequiredError="Vendor Code is required" />
+                        </div>
+
+                       @*  <div class="col-md-2">
+                            <MudAutocomplete @bind-bind-Value="@RmLabelGeneration.ItemCode"
+                                             SearchFunc="@FilterVendorCodes"
+                                             ToStringFunc="@GetVendorCode"
+                                             Label="Vendor Code1"
+                                             Variant="Variant.Outlined"
+                                             Strict="false"
+                                             Margin="Margin.Dense"
+                                             Required="true"
+                            RequiredError="Vendor Code is required" />
+                        </div>
+                         *@
+                       @*  <div class="col-md-3">
+                            <MudTextField @bind-Value="@RmLabelGeneration.CompanyName" Label="Company Name" Variant="Variant.Outlined" ReadOnly="isViewMode" Margin="Margin.Dense" />
+                        </div> *@
+                       
+                       
+
+                     
+
+@* 
+                        @if (!string.IsNullOrEmpty(qrCodeImageData))
+{
+    <MudImage Src="@qrCodeImageData" Alt="QR Code" Elevation="25" Class="rounded-lg" />
+}
+  *@                       
                     </div>
         </div>
 
@@ -301,11 +343,10 @@
     </MudForm>
 </DialogContent>
 <DialogActions style="text-align: end">
-
     <MudButton OnClick="Close" StartIcon="@Icons.Material.Filled.Close" Variant="Variant.Filled" Color="MudBlazor.Color.Error" Class="m-2">Close</MudButton>
     @if (!isViewMode)
     {
-        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="MudBlazor.Color.Primary" OnClick="Submit" Class="m-2">@(isEditMode ? "Update" : "Submit")</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Save" Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Submit" Class="m-2">@(isEditMode ? "Update" : "Submit")</MudButton>
     }
     @if (isViewMode)
     {
