@@ -1,0 +1,484 @@
+﻿@using ERP_API.Moduls
+@using MudBlazor
+@using UI_ERP.Reusable
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject HttpClient HttpClient
+
+<DialogContent Style="max-height: 630px; overflow-y: scroll">
+    <MudForm @ref="form">
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <div class="row mb-2 m-1">
+                    @if (isViewMode)
+                    {
+                        <div class="col-md-2">
+                            <MudTextField @bind-Value="@Item.ItemId" Label="ItemId" Variant="Variant.Outlined" ReadOnly="isViewMode" Required="true" Immediate="true" Margin="Margin.Dense" />
+                        </div>
+                    }
+                    <div class="col-md-2">
+                        <MudTextField @bind-Value="@Item.ItemCode"
+                                      Label="Item Code"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="isViewMode"
+                                      Margin="Margin.Dense"
+                                      Required="true"
+                                      RequiredError="Item Code is required"
+                                      OnBlur="CheckDuplicate" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <MudTextField @bind-Value="@Item.ItemName"
+                                      Label="Item Name"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="isViewMode"
+                                      Margin="Margin.Dense"
+                                      Required="true"
+                                      RequiredError="Item Name is required"
+                                      OnBlur="CheckDuplicate" />
+                    </div>
+                   
+                    <div class="col-md-2">
+                        <MudAutocomplete T="int?"
+                                       @bind-Value="@Item.CategoryId"
+                                       SearchFunc="@(value => FilterCategoryNames(value, new ItemReadOnlyDto()))"
+                                       ToStringFunc="@GetCategoryName"
+                                       Label="Category Name"
+                                       Variant="Variant.Outlined"
+                                       Strict="false"
+                                       Margin="Margin.Dense"
+                                       Required="true"
+                                       RequiredError="Category Name is required" />
+                    </div>
+                    <div class="col-md-2">
+                        <MudTextField @bind-Value="@Item.Description2"
+                                      Label="Description"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="isViewMode"
+                                      Margin="Margin.Dense" />
+                    </div>
+                    <div class="col-md-2">
+                        <MudTextField @bind-Value="@Item.Grade"
+                                    Label="Grade"
+                                    Variant="Variant.Outlined"
+                                    ReadOnly="isViewMode"
+                                    Margin="Margin.Dense" />
+                    </div>
+                    <div class="col-md-2">
+                        <MudTextField @bind-Value="@Item.HSNcode"
+                                      Label="HSN Code"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="isViewMode"
+                                      Margin="Margin.Dense" />
+                    </div>
+                    <div class="col-md-2">
+                        <MudTextField @bind-Value="@Item.Packingqty"
+                                      Label="Packing Qty"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="isViewMode"
+                                      Margin="Margin.Dense" />
+                    </div>
+                    <div class="col-md-2">
+                        <MudTextField @bind-Value="@Item.RackNo"
+                                      Label="Rack No"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="isViewMode"
+                                      Margin="Margin.Dense" />
+                    </div>
+                    <div class="col-md-2">
+                        <MudDatePicker @bind-Date="@Item.MfgDate"
+                                      Label="Mfg Date"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="isViewMode"
+                                      Margin="Margin.Dense" />
+                    </div>
+                    <div class="col-md-2">
+                        <MudDatePicker @bind-Date="@Item.ExpiryDate"
+                                      Label="Exp Date"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="isViewMode"
+                                      Margin="Margin.Dense" />
+                    </div>
+                   
+                       
+                    <div class="col-md-2">
+                    <MudSelect T="string" 
+                              @bind-Value="Item.MeasureUnit"
+                              Label="Unit Of Measurement"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Required="true">
+                        @foreach (var uom in UomList)
+                        {
+                            <MudSelectItem Value="@uom.UomName">@uom.UomName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+
+                <!-- Alternate Unit -->
+                <div class="col-md-2">
+                    <MudSelect T="string" 
+                              @bind-Value="Item.AltMeasureUnit"
+                              Label="Alternate Unit"
+                                   Margin="Margin.Dense"
+                                   Variant="Variant.Outlined">
+                        @foreach (var uom in UomList)
+                        {
+                            <MudSelectItem Value="@uom.UomName">@uom.UomName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                    @if (ShowConversionInput)
+                    {
+                        <div class="col-md-4">
+                            <MudPaper Class="d-flex align-center gap-4" Elevation="0">
+                                <MudText>1 @Item.AltMeasureUnit =</MudText>
+                                <MudTextField @bind-Value="@Item.UnitConvert"
+                                              Margin="Margin.Dense"
+                                Style="width: 260px"
+                                              Variant="Variant.Outlined"
+                                              Required="true" />
+                                             
+                                <MudText>@Item.MeasureUnit</MudText>
+                            </MudPaper>
+                        </div>
+                    }
+
+                    <div class="col-md-2">
+                        <MudTextField @bind-Value="@Item.Rate"
+                                    Label="Rate"
+                                    Variant="Variant.Outlined"
+                                    ReadOnly="isViewMode"
+                                    Margin="Margin.Dense" />
+                    </div>
+
+
+                  
+
+                    
+                    <div class="col-md-2">
+                        <MudTextField @bind-Value="@Item.Rol"
+                                    Label="Rol"
+                                    Variant="Variant.Outlined"
+                                    ReadOnly="isViewMode"
+                                    Margin="Margin.Dense" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (ShowBomTable)
+        {
+            <div class="row m-1">
+                <div class="col-md-12">
+                    <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4" Style="font-weight: bold;">
+                        BILL OF MATERIAL
+                    </MudText>
+                    <MudTable Items="Bom" Height="300px" Virtualize="true" FixedHeader="true" Dense="true"
+                             HorizontalScrollbar="true" Hover="true" Breakpoint="Breakpoint.Sm" Striped="true"
+                             Bordered="true" CustomHeader="true" CustomFooter="true" HeaderClass="table-head-bordered"
+                             Class="displayTable">
+                        <HeaderContent>
+                            <MudTHeadRow Class="header-centered">
+                                <MudTh style="font-size: 12px;padding:1px;text-align:center">Sl No</MudTh>
+                                <MudTh style="font-size: 12px;padding:1px;text-align:center">Item Code</MudTh>
+                                <MudTh style="font-size: 12px;padding:1px;text-align:center">Item Name</MudTh>
+                                <MudTh style="font-size: 12px;padding:1px;text-align:center">Rm Utility Qty</MudTh>
+                            </MudTHeadRow>
+                        </HeaderContent>
+                        <RowTemplate Context="rowContext">
+                            <MudTd style="@GetRowStyle(Bom.IndexOf(rowContext))">@(Bom.IndexOf(rowContext) + 1)</MudTd>
+                            <MudTd style="@GetRowStyle(Bom.IndexOf(rowContext))">
+                                <MudAutocomplete T="int?"
+                                               Value="rowContext.ItemId"
+                                               ValueChanged="@((int? value) => HandleItemIdChanged(value, rowContext))"
+                                               SearchFunc="@(value => FilterItemCodes(value, rowContext))"
+                                               ToStringFunc="@GetItemCode"
+                                                 MaxItems="int.MaxValue"
+                                               Strict="false"
+                                               Required="true"
+                                               RequiredError="Item Code is required" />
+                            </MudTd>
+                            
+                            <MudTd style="@GetRowStyle(Bom.IndexOf(rowContext))">
+                                <MudAutocomplete T="int?"
+                                               Value="rowContext.ItemId"
+                                               ValueChanged="@((int? value) => HandleItemIdChanged(value, rowContext))"
+                                               SearchFunc="@(value => FilterItemNames(value, rowContext))"
+                                               ToStringFunc="@GetItemName"
+                                               Strict="false"
+                                               Required="true"
+                                               RequiredError="Item Name is required" />
+                            </MudTd>
+                            <MudTd style="@GetRowStyle(Bom.IndexOf(rowContext))">
+                                <MudTextField @bind-Value="@rowContext.RMUtilityqty"
+                                            ReadOnly="isViewMode"
+                                            Required="true"
+                                            RequiredError="RmUtility qty is required" />
+                            </MudTd>
+                        </RowTemplate>
+                        <FooterContent>
+                            @if (!(isViewMode || isEditMode))
+                            {
+                                <MudTooltip Text="Add Item">
+                                    <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Style="padding: 0px;margin:10px;" @onclick="AddNewItem" Disabled="@(!IsValidForNewItem())" />
+                                </MudTooltip>
+                            }
+
+                        </FooterContent>
+                    </MudTable>
+                </div>
+            </div>
+        }
+    </MudForm>
+</DialogContent>
+<DialogActions style="text-align: end">
+    <MudButton OnClick="Close" StartIcon="@Icons.Material.Filled.Close" Variant="Variant.Filled" Color="Color.Error"
+               Class="m-2">Close</MudButton>
+    @if (!isViewMode)
+    {
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Primary" OnClick="Submit" Class="m-2"> @(isEditMode ? "Update" : "Submit")</MudButton>
+
+    }
+</DialogActions>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public ItemCreateDto Item { get; set; } 
+    [Parameter] public List<ItemReadOnlyDto> Items { get; set; } = new List<ItemReadOnlyDto>();
+    [Parameter] public List<CategoryReadOnlyDto> Categories { get; set; } = new List<CategoryReadOnlyDto>();
+    [Parameter] public List<BomReadOnlyDto> Bom { get; set; } = new List<BomReadOnlyDto>();
+    [Parameter] public List<UomReadOnlyDto> Uoms { get; set; } = new List<UomReadOnlyDto>();
+    [Parameter] public bool isViewMode { get; set; }
+    [Parameter] public bool isEditMode { get; set; }
+
+
+    private string GetRowStyle(int index)
+    {
+        // Return the style as a string with font-size, padding, and dynamic background color
+        string backgroundColor = index % 2 == 0 ? "#ffffff" : "#e8f4f8";
+        return $"font-size: 12px;padding:1px;text-align:center;background-color:{backgroundColor}";
+    }
+
+    private MudForm form = new MudForm();
+    private bool ShowBomTable => Item.CategoryId == 1;
+
+    private void HandleCategorySelection(int? categoryId)
+    {
+        Item.CategoryId = categoryId;
+        if (categoryId != 1)
+        {
+            Bom.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private void Close() => MudDialog.Cancel();
+    private bool IsValidForNewItem()
+    {
+        if (!Bom.Any()) return true;
+
+        var lastItem = Bom.Last();
+        return lastItem.ItemId.HasValue &&
+               lastItem.RMUtilityqty.HasValue &&
+               lastItem.RMUtilityqty > 0;
+    }
+    private async Task Submit()
+    {
+        try
+        {
+            await form.Validate();
+
+            if (ShowConversionInput && (!Item.UnitConvert.HasValue || Item.UnitConvert <= 0))
+            {
+                Snackbar.Add("Please enter a valid conversion rate", Severity.Error);
+                return;
+            }
+
+          
+
+            if (form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"An error occurred: {ex.Message}", Severity.Error);
+        }
+    }
+    private void AddNewItem()
+    {
+        Bom.Add(new BomReadOnlyDto());
+    }
+
+    private void RemoveItemFromProduct(BomReadOnlyDto item)
+    {
+        Bom.Remove(item);
+    }
+
+    private async Task<IEnumerable<int?>> FilterItemCodes(string value, BomReadOnlyDto currentItem)
+    {
+        await Task.Delay(5);
+        var filteredItemNames = Items;
+        if (string.IsNullOrEmpty(value))
+            return filteredItemNames
+                .OrderBy(p => p.ItemCode, StringComparer.OrdinalIgnoreCase)
+                .Select(p => (int?)p.ItemId);
+
+        return filteredItemNames
+            .Where(p => p.ItemCode != null && p.ItemCode.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            .OrderBy(p => p.ItemCode, StringComparer.OrdinalIgnoreCase)
+            .Select(p => (int?)p.ItemId);
+    }
+
+    private string GetItemCode(int? productId)
+    {
+        var filteredItemNames = Items;
+        var item = filteredItemNames.FirstOrDefault(p => p.ItemId == productId);
+        return item?.ItemCode ?? string.Empty;
+    }
+
+    private async Task<IEnumerable<int?>> FilterItemNames(string value, BomReadOnlyDto currentItem)
+    {
+        await Task.Delay(5);
+        var filteredItemNames = Items;
+        if (string.IsNullOrEmpty(value))
+            return filteredItemNames
+                .OrderBy(p => p.ItemName, StringComparer.OrdinalIgnoreCase)
+                .Select(p => (int?)p.ItemId);
+
+        return filteredItemNames
+            .Where(p => p.ItemName != null && p.ItemName.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            .OrderBy(p => p.ItemName, StringComparer.OrdinalIgnoreCase)
+            .Select(p => (int?)p.ItemId);
+    }
+
+    private string GetItemName(int? Id)
+    {
+        var filteredItemNames = Items;
+        var item = filteredItemNames.FirstOrDefault(p => p.ItemId == Id);
+        return item?.ItemName ?? string.Empty;
+    }
+
+    private async Task<IEnumerable<int?>> FilterCategoryNames(string value, ItemReadOnlyDto currentItem)
+    {
+        await Task.Delay(5);
+        if (string.IsNullOrEmpty(value))
+            return Categories
+                .OrderBy(p => p.CategoryName, StringComparer.OrdinalIgnoreCase)
+                .Select(p => (int?)p.CategoryId);
+
+        return Categories
+            .Where(p => p.CategoryName != null &&
+                       p.CategoryName.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            .OrderBy(p => p.CategoryName, StringComparer.OrdinalIgnoreCase)
+            .Select(p => (int?)p.CategoryId);
+    }
+
+    private string GetCategoryName(int? Id)
+    {
+        if (!Id.HasValue) return string.Empty;
+        var category = Categories.FirstOrDefault(p => p.CategoryId == Id);
+        return category?.CategoryName ?? string.Empty;
+    }
+    private async Task CheckDuplicate()
+    {
+        // Check for duplicate item code
+        if (!string.IsNullOrEmpty(Item.ItemCode) &&
+            Items.Any(x => x.ItemCode == Item.ItemCode))
+        {
+            await DialogService.ShowMessageBox(
+                "Duplicate Found",
+                "This Item Code already exists! Please enter a different Item Code.",
+                yesText: "OK");
+            Item.ItemCode = string.Empty;
+            return;
+        }
+
+        // Check for duplicate item name
+        if (!string.IsNullOrEmpty(Item.ItemName) &&
+            Items.Any(x => x.ItemName == Item.ItemName))
+        {
+            await DialogService.ShowMessageBox(
+                "Duplicate Found",
+                "This Item Name already exists! Please enter a different Item Name.",
+                yesText: "OK");
+            Item.ItemName = string.Empty;
+            return;
+        }
+    }
+   
+    private void HandleItemIdChanged(int? value, BomReadOnlyDto rowContext)
+    {
+        rowContext.ItemId = value;
+        StateHasChanged();
+    }
+    private List<UomReadOnlyDto> UomList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await LoadUoms();
+    }
+
+    private async Task LoadUoms()
+    {
+        try
+        {
+            UomList = await HttpClient.GetFromJsonAsync<List<UomReadOnlyDto>>($"{Variable.API_URL}/api/UnitOfMeasurements")
+                      ?? new List<UomReadOnlyDto>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading units: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private bool ShowConversionInput => !string.IsNullOrEmpty(Item.MeasureUnit)
+                                       && !string.IsNullOrEmpty(Item.AltMeasureUnit)
+                                       && Item.MeasureUnit != Item.AltMeasureUnit;
+
+    private void HandlePrimaryUnitChange(string value)
+    {
+        Item.MeasureUnit = value;
+
+        // If both units are the same, reset conversion
+        if (Item.MeasureUnit == Item.AltMeasureUnit)
+        {
+            Item.UnitConvert = 1;
+        }
+
+        StateHasChanged();
+    }
+
+    private void HandleAltUnitChange(string value)
+    {
+        Item.AltMeasureUnit = value;
+
+        // If alternate unit is empty or same as primary, reset conversion
+        if (string.IsNullOrEmpty(value) || value == Item.MeasureUnit)
+        {
+            Item.UnitConvert = 1;
+        }
+        else
+        {
+            // Reset conversion value when units change
+            Item.UnitConvert = null;
+        }
+
+        StateHasChanged();
+    }
+  
+
+}
+
+<style type="text/css">
+    .mud-table-head .header-centered th {
+        text-align: center;
+        font-size: 1.2em;
+    }
+</style>
+
+           
+
