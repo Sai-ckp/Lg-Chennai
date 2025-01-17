@@ -1,0 +1,182 @@
+        modelBuilder.Entity<Item>(entity =>
+        {
+            entity.HasKey(e => e.ItemId).HasName("PRIMARY");
+
+            entity.ToTable("item");
+
+            entity.HasIndex(e => e.CategoryId, "CategoryId");
+            entity.HasIndex(e => e.CompanyId, "CompanyId");
+            entity.Property(e => e.MfgDate).HasColumnType("datetime");
+            entity.Property(e => e.ExpiryDate).HasColumnType("datetime");
+
+
+            // Ensure Id is auto-incremented (this is usually the default behavior for primary keys)
+            entity.Property(e => e.ItemId)
+                .ValueGeneratedOnAdd();  // This will ensure Id is auto-incremented
+
+            entity.Property(e => e.AltMeasureUnit).HasMaxLength(255);
+            entity.Property(e => e.Bom).HasColumnName("BOM");
+            entity.Property(e => e.CategoryId).HasDefaultValueSql("'0'");
+            entity.Property(e => e.ItemCode).HasDefaultValueSql("'0'");
+            entity.Property(e => e.ColourCode).HasMaxLength(100);
+            entity.Property(e => e.CompanyId).HasDefaultValueSql("'0'");
+            entity.Property(e => e.Rol).HasDefaultValueSql("'0'");
+            entity.Property(e => e.Description2).HasMaxLength(100);
+            entity.Property(e => e.Grade).HasMaxLength(100);
+            entity.Property(e => e.ItemName).HasMaxLength(100);
+            //entity.Property(e => e.MfgDate).HasMaxLength(100);
+            //entity.Property(e => e.ExpiryDate).HasMaxLength(100);
+
+            entity.Property(e => e.Itemcol)
+                  .HasMaxLength(45)
+                  .HasColumnName("itemcol");
+
+            // Increase the length of `MeasureUnit` to prevent truncation issues
+            entity.Property(e => e.MeasureUnit).HasMaxLength(50);
+
+            entity.Property(e => e.Molqty).HasDefaultValueSql("'0'");
+            entity.Property(e => e.RackNo).HasMaxLength(10);
+            entity.Property(e => e.Rate).HasDefaultValueSql("'0'");
+            entity.Property(e => e.RmRate).HasDefaultValueSql("'0'");
+            //entity.Property(e => e.DrwrItemcode).HasDefaultValueSql("'0'");
+            entity.Property(e => e.Packingqty).HasDefaultValueSql("'0'");
+            entity.Property(e => e.RMUtilityqty).HasDefaultValueSql("'0'");
+            //entity.Property(e => e.Altunitrate).HasDefaultValueSql("'0'");
+            //entity.Property(e => e.RM).HasDefaultValueSql("'0'");
+            //entity.Property(e => e.Description1).HasDefaultValueSql("'0'");
+            entity.Property(e => e.RmWeight).HasDefaultValueSql("'0'");
+            entity.Property(e => e.Rmid)
+                  .HasDefaultValueSql("'0'")
+                  .HasColumnName("rmid");
+            entity.Property(e => e.Rmqty)
+                  .HasDefaultValueSql("'0'")
+                  .HasColumnName("rmqty");
+            entity.Property(e => e.Rol)
+                  .HasDefaultValueSql("'0'")
+                  .HasColumnName("ROL");
+            entity.Property(e => e.TariffSubHead).HasMaxLength(20);
+            entity.HasMany(d => d.Boms).WithOne(p => p.Item)
+.HasForeignKey(p => p.ItemId)
+.OnDelete(DeleteBehavior.Cascade);
+        });
+
+
+
+
+
+
+ modelBuilder.Entity<PmInwardMaterial>(entity =>
+ {
+     entity
+    .HasKey(e => e.InMatId).HasName("PRIMARY");
+     entity
+         .ToTable("pminwardmaterial");
+
+     entity.Property(e => e.InvDate).HasColumnType("datetime");
+     entity.Property(e => e.InvNo).HasMaxLength(50);
+
+
+     entity.HasIndex(e => e.InMatId, "InMatId").IsUnique();
+
+
+
+     entity.Property(e => e.VendId).HasDefaultValueSql("'0'");
+     entity.Property(e => e.POId).HasDefaultValueSql("'0'");
+     entity.Property(e => e.StoreId).HasDefaultValueSql("'0'");
+
+     entity.Property(e => e.GRNDate).HasColumnType("datetime");
+
+     entity.Property(e => e.MfgDate).HasColumnType("datetime");
+
+     entity.Property(e => e.ExpDate).HasColumnType("datetime");
+     entity.Property(e => e.GRNNo).HasMaxLength(50);
+
+     entity.HasMany(d => d.PmInwardMaterialSubs).WithOne(p => p.PmInwardMaterial)
+    .HasForeignKey(p => p.InMatId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+
+ });
+
+
+
+
+
+
+
+ modelBuilder.Entity<RawInwardMaterial>(entity =>
+ {
+     entity
+    .HasKey(e => e.InMatId).HasName("PRIMARY");
+     entity
+         .ToTable("rawinwardmaterial");
+
+     entity.Property(e => e.InMatId)
+         .ValueGeneratedOnAdd(); 
+
+     entity.Property(e => e.InvDate).HasColumnType("datetime");
+     entity.Property(e => e.InvNo).HasMaxLength(50);
+
+
+     entity.HasIndex(e => e.InMatId, "InMatId").IsUnique();
+
+     entity.Property(e => e.PoDate)
+        .HasColumnType("datetime")
+        .HasColumnName("PODate");
+     entity.Property(e => e.PoNo)
+         .HasMaxLength(50)
+         .HasColumnName("PONo");
+
+     entity.Property(e => e.VendId).HasDefaultValueSql("'0'");
+     
+     entity.Property(e => e.StoreId).HasDefaultValueSql("'0'");
+
+     entity.Property(e => e.GRNDate).HasColumnType("datetime");
+     entity.Property(e => e.GRNNo).HasMaxLength(50);
+
+     entity.HasMany(d => d.RawInwardMaterialSubs).WithOne(p => p.RawInwardMaterial)
+    .HasForeignKey(p => p.InMatId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+
+ });
+
+
+
+
+
+
+
+
+modelBuilder.Entity<FgInwardMaterial>(entity =>
+{
+    entity
+   .HasKey(e => e.InMatId).HasName("PRIMARY");
+    entity
+        .ToTable("fginwardmaterial");
+
+    entity.Property(e => e.InvDate).HasColumnType("datetime");
+    entity.Property(e => e.InvNo).HasMaxLength(50);
+    entity.Property(e => e.STNId).HasDefaultValueSql("'0'"); ;
+
+
+    entity.HasIndex(e => e.InMatId, "InMatId").IsUnique();
+    entity.Property(e => e.MfgDate).HasColumnType("datetime");
+
+    entity.Property(e => e.ExpDate).HasColumnType("datetime");
+
+
+    entity.Property(e => e.VendId).HasDefaultValueSql("'0'");
+    entity.Property(e => e.POId).HasDefaultValueSql("'0'");
+    entity.Property(e => e.StoreId).HasDefaultValueSql("'0'");
+
+    entity.Property(e => e.GRNDate).HasColumnType("datetime");
+    entity.Property(e => e.GRNNo).HasMaxLength(50);
+
+    entity.HasMany(d => d.FgInwardMaterialSubs).WithOne(p => p.FgInwardMaterial)
+   .HasForeignKey(p => p.InMatId)
+   .OnDelete(DeleteBehavior.Cascade);
+
+
+});
+
